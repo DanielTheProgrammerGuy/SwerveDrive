@@ -95,6 +95,10 @@ public class SwerveSubsystem extends SubsystemBase {
         return false;
     }
 
+    public float getHeading(){
+      return gyro.getYaw();
+    }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
@@ -111,6 +115,7 @@ public class SwerveSubsystem extends SubsystemBase {
     } else {
       SmartDashboard.putString("Gyro Status", "Not Connected");
     }
+
   }
 
     @Override
@@ -122,6 +127,13 @@ public class SwerveSubsystem extends SubsystemBase {
         return swerveDrive;
     }
 
+  
+  /**setup for movement relative to the field
+   * Left is positive, right is negative
+   * Forward is positive, backward is negative
+   * Counter clockwise is positive, clockwise is negative
+   * 
+    */
     public void driveFieldOriented(ChassisSpeeds velocity) {
         swerveDrive.driveFieldOriented(velocity);
     }
@@ -130,6 +142,22 @@ public class SwerveSubsystem extends SubsystemBase {
         return run(() -> {
             swerveDrive.driveFieldOriented(velocity.get());
         });
+    }
+
+  /**setup for movement relative to the robot
+   * Left is positive, right is negative
+   * Forward is positive, backward is negative
+   * Counter clockwise is positive, clockwise is negative
+   * 
+    */
+    public void driveRobotOriented(ChassisSpeeds velocity) {
+      swerveDrive.drive(velocity);
+  }
+
+    public Command driveRobotOriented(Supplier<ChassisSpeeds> velocity) {
+      return run(() -> {
+          swerveDrive.drive(velocity.get());
+      });
     }
 
     public Command robotForwards() {

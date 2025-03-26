@@ -15,8 +15,10 @@ import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class AprilTagSubsystem extends SubsystemBase {
   private PhotonCamera camera;
@@ -40,21 +42,36 @@ public class AprilTagSubsystem extends SubsystemBase {
     });
   }
   
+  private PhotonTrackedTarget getTagById(int tagId) {
+    for (PhotonTrackedTarget target : tagsTracked) {
+      if (target.getFiducialId() == tagId)
+        return target;
+    }
+    return null;
+  }
 
   public List<PhotonTrackedTarget> getTargets() {
+    SmartDashboard.putString("Targets", tagsTracked.toString());
     return tagsTracked;
   }
 
-  // public Pose2d getCameraToTagPose(int tagId) {
-  //   // Get tag object if it exists
-  //   PhotonTrackedTarget target = getTagById(tagId);
-  //   if (target == null)
-  //     return null;
-
-  //   return getCameraToTagPose(target);
   // }
 
-  public Pose2d getCameraToTagPose(List<PhotonTrackedTarget> targets) {
+  public Pose2d getCameraToTagPose(int tagId) {
+    // Get tag object if it exists
+    PhotonTrackedTarget target = getTagById(tagId);
+    if (target == null)
+      return null;
+
+    List<PhotonTrackedTarget> targets = new ArrayList<>();
+
+    targets.add(target);
+    return getCameraToTagPose(targets);
+  }
+
+  public Pose2d getCameraToTagPose(List<PhotonTrackedTarget> targets) { 
+    System.out.println(targets.toString());
+    // Get transform from target
     if (targets.size() > 0) {
       PhotonTrackedTarget target = targets.get(0);
   
@@ -68,7 +85,7 @@ public class AprilTagSubsystem extends SubsystemBase {
       // Create a Pose2d from the Transform3d
       return new Pose2d(transform3d.getX(), transform3d.getY(), transform3d.getRotation().toRotation2d());
     }
-    return new Pose2d();
+    return new Pose2d(0, 0, Rotation2d.fromDegrees(0));
   }
 
   public boolean hasTargets() {
@@ -86,8 +103,6 @@ public class AprilTagSubsystem extends SubsystemBase {
         tagsTracked.add(target);
       }
     }
-
-    System.out.println(getCameraToTagPose(getTargets()));
   }
 
   @Override
