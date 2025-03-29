@@ -17,31 +17,18 @@ import org.photonvision.targeting.PhotonTrackedTarget;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class AprilTagSubsystem extends SubsystemBase {
   private PhotonCamera camera;
   private List<PhotonTrackedTarget> tagsTracked = new ArrayList<PhotonTrackedTarget>();
+  private int framesSinceMaxTargetCount;
+  private int maxTargetResultsSize = 1;
 
   public AprilTagSubsystem(String cameraNameString) {
     camera = new PhotonCamera(cameraNameString);
   }
 
-  // private PhotonTrackedTarget getTagById(int tagId) {
-  //   for (PhotonTrackedTarget target : tagsTracked) {
-  //     if (target.getFiducialId() == tagId)
-  //       return target;
-  //   }
-  //   return null;
-  // }
-
-  public Command testing() {
-    return runOnce(() -> {
-      System.out.println(getCameraToTagPose(getTargets()));
-    });
-  }
-  
   private PhotonTrackedTarget getTagById(int tagId) {
     for (PhotonTrackedTarget target : tagsTracked) {
       if (target.getFiducialId() == tagId)
@@ -55,6 +42,18 @@ public class AprilTagSubsystem extends SubsystemBase {
     return tagsTracked;
   }
 
+  // public PhotonTrackedTarget getBestTarget(List<PhotonTrackedTarget> targetList) {
+  //   PhotonTrackedTarget bestTarget = null;
+  //   for (PhotonTrackedTarget target : targetList) {
+  //     if (bestTarget == null) {
+  //       bestTarget = target;
+  //     } else {
+  //       if (Math.abs(bestTarget.getYaw()) > Math.abs(target.getYaw())) {
+  //         bestTarget = target;
+  //       }
+  //     }
+  //   } 
+  //   return bestTarget;
   // }
 
   public Pose2d getCameraToTagPose(int tagId) {
@@ -70,12 +69,10 @@ public class AprilTagSubsystem extends SubsystemBase {
   }
 
   public Pose2d getCameraToTagPose(List<PhotonTrackedTarget> targets) { 
-    System.out.println(targets.toString());
     // Get transform from target
     if (targets.size() > 0) {
       PhotonTrackedTarget target = targets.get(0);
-  
-      // Get transform from target
+
       Transform3d transform3d = target.getBestCameraToTarget();
   
       // Offset the target transform considering that the camera is not in the center
@@ -95,13 +92,22 @@ public class AprilTagSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     // Look for new targets
-    tagsTracked.clear();
+    //counts how many frams since it detected a
+    //max number of targets and wont update unless at least 10 frames have past
+    //makes sure that even if the library doesnt detect a tag for a second it wont return nothing
+    //essentrially just accounts for inconsistency of photonvision
+    framesSinceMaxTargetCount++;
     List<PhotonPipelineResult> results = camera.getAllUnreadResults();
-    if (results.size() > 0) {
+    if ((results.size() >= maxTargetResultsSize || framesSinceMaxTargetCount > 10) && results.size() > 0) {
+      framesSinceMaxTargetCount = 0;
+      tagsTracked.clear();
+      maxTargetResultsSize = results.size();
       PhotonPipelineResult lastResult = results.get(0);
       for (PhotonTrackedTarget target : lastResult.targets) {
         tagsTracked.add(target);
       }
+    } else if (framesSinceMaxTargetCount > 10) {
+      tagsTracked.clear();
     }
   }
 

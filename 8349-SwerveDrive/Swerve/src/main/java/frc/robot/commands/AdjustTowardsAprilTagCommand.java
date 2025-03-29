@@ -54,39 +54,42 @@ public void execute() {
     this.TagPosition = m_aprilTagSubsystem.getCameraToTagPose(this.TagId);
     if (this.TagPosition == null) {
       System.out.println("Tag not found, unable to adjust");
+    } else {
+      //translate position to 1 meter in front of tag
+      this.TagPosition = this.TagPosition.plus(new Transform2d(1,0,new Rotation2d(0)));
+
+      //gets the distance to the goal postion
+      double relativex = this.TagPosition.getX();
+      double relativey = this.TagPosition.getY();
+      double distanceToTarget = Math.hypot(relativex,relativey); // a^2 + b^2 = c^2
+      
+
+      //divide the distance travelled by speed (0.5) to know how long it will take
+      RunTime = distanceToTarget/0.5;
+
+      //gets the absolute x, y movement to target and dived by time to know speed of each
+      xSpeed = relativex/RunTime;//negative since y is to the left
+      ySpeed = relativey/RunTime;
+
+      //gets the current angle of the tag
+      double currentAngleRadians = this.TagPosition.getRotation().getRadians();
+
+      //determines which way the bot will turn to face the tag
+      double directionMultiplier = currentAngleRadians < 0
+          ? 1
+          : -1;
+      //determines how much the bot needs to rotate
+      double RotationNeeded = (Math.PI - Math.abs(currentAngleRadians)) * directionMultiplier ;
+      
+      // Calculate the rotational speed
+      rSpeed = RotationNeeded/RunTime;
+    }
+    if (stopWatch.getDuration() > RunTime) {
       return;
     }
-    //translate position to 1 meter in front of tag
-    this.TagPosition = this.TagPosition.plus(new Transform2d(2,0,new Rotation2d(0)));
-
-    //gets the distance to the goal postion
-    double relativex = this.TagPosition.getX();
-    double relativey = this.TagPosition.getY();
-    double distanceToTarget = Math.hypot(relativex,relativey); // a^2 + b^2 = c^2
-    
-
-    //divide the distance travelled by speed (0.5) to know how long it will take
-    RunTime = distanceToTarget/0.5;
-
-    //gets the absolute x, y movement to target and dived by time to know speed of each
-    xSpeed = relativex/RunTime;//negative since y is to the left
-    ySpeed = relativey/RunTime;
-
-    //gets the current angle of the tag
-    double currentAngleRadians = this.TagPosition.getRotation().getRadians();
-
-    //determines which way the bot will turn to face the tag
-    double directionMultiplier = currentAngleRadians < 0
-        ? 1
-        : -1;
-    //determines how much the bot needs to rotate
-    double RotationNeeded = (Math.PI - Math.abs(currentAngleRadians)) * directionMultiplier ;
-    
-    // Calculate the rotational speed
-    rSpeed = RotationNeeded/RunTime;
-
     // Move the robot towards the goal
     m_swerveSubsystem.driveRobotOriented(new ChassisSpeeds(xSpeed, ySpeed, rSpeed));
+    stopWatch.start();
 }
 
 @Override
